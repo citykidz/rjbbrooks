@@ -1,0 +1,44 @@
+---
+- name: Setup Ubuntu 24.04.2 LTS for Microsoft Edge and Microsoft 365
+  hosts: localhost
+  become: yes
+
+  tasks:
+    - name: Update and upgrade apt packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+
+    - name: Install Microsoft Edge
+      apt:
+        name: microsoft-edge-stable
+        state: present
+
+    - name: Create a script to open Microsoft Edge on startup
+      copy:
+        content: |
+          #!/bin/bash
+          microsoft-edge https://www.microsoft365.com/
+        dest: /usr/local/bin/start_edge.sh
+        mode: '0755'
+
+  - name: Create a systemd service to run the script on boot
+  copy:
+    content: |
+      [Unit]
+      Description=Start Microsoft Edge on boot
+
+      [Service]
+      ExecStart=/usr/local/bin/start_edge.sh
+      Restart=always
+      User=edgeuser  # Replace 'edgeuser' with the non-privileged username
+
+      [Install]
+      WantedBy=multi-user.target
+  dest: /etc/systemd/system/start_edge.service
+
+    - name: Enable and start the systemd service
+      systemd:
+        name: start_edge
+        enabled: yes
+        state: started
